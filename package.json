@@ -1,0 +1,22 @@
+{
+  "name": "companion-rgblink-openapi-connector",
+  "version": "2.1.0",
+  "description": "This is POC of connector between modules for Bitfocus Companion (https://bitfocus.io/companion) and RGBlink (https://www.rgblink.com/) devices managed by RGBLink OpenAPI",
+  "main": "rgblinkopenapiconnector.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marcingum/companion-rgblink-openapi-connector.git"
+  },
+  "author": "Marcin Gumułka <marcingum@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/marcingum/companion-rgblink-openapi-connector/issues"
+  },
+  "homepage": "https://github.com/marcingum/companion-rgblink-openapi-connector#readme",
+  "dependencies": {
+    "@companion-module/base": "^1.9.0"
+  }
+}
