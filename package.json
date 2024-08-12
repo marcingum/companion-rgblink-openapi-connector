@@ -4,7 +4,8 @@
   "description": "This is POC of connector between modules for Bitfocus Companion (https://bitfocus.io/companion) and RGBlink (https://www.rgblink.com/) devices managed by RGBLink OpenAPI",
   "main": "rgblinkopenapiconnector.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "tsc && node dist/rgblinkopenapiconnector.js",
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -17,6 +18,19 @@
   },
   "homepage": "https://github.com/marcingum/companion-rgblink-openapi-connector#readme",
   "dependencies": {
-    "@companion-module/base": "^1.9.0"
+    "@companion-module/base": "^1.9.0",
+    "ts-node": "^10.9.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "@jest/types": "^29.6.1",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.5.9",
+    "eslint": "^9.9.0",
+    "globals": "^15.9.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.4",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.1.0"
   }
 }
