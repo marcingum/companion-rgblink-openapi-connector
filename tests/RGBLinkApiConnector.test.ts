@@ -3,37 +3,44 @@ import { ApiConfig, PollingCommand, RGBLinkApiConnector } from "../rgblinkopenap
 
 const TEST_PORT: number = 25000
 
-test('RGBLinkApiConnector calculate checksum correctly', () => {
-    const api: RGBLinkApiConnector = new RGBLinkApiConnector(new ApiConfig('localhost', TEST_PORT, false, false), [])
+let api: RGBLinkApiConnector | undefined = undefined
+
+afterEach(() => {
+    if (api) {
+        api.onDestroy()
+    }
+});
+
+test('RGBLinkApiConnector calculate checksum correctly', async () => {
+    api = new RGBLinkApiConnector(new ApiConfig('localhost', TEST_PORT, false, false), [])
 
     expect(api.calculateChecksum('00', '00', '75', '1E', '00', '00', '00')).toEqual('93')
 
     expect(api.calculateChecksum('00', '00', '00', '00', '00', '00', '00')).toEqual('00')
 
-    api.onDestroy();
-
 })
 
-test('RGBLinkApiConnector polling works', async () => {
+test('RGBLinkApiConnector polling commands and join with answers ', async () => {
     // given connectore setted up with enabled polling
-    const api: RGBLinkApiConnector = new RGBLinkApiConnector(
+    api = new RGBLinkApiConnector(
         new ApiConfig('localhost', TEST_PORT, true, false),
         [
             new PollingCommand('01', '01', '01', '01', '01'),
             new PollingCommand('02', '02', '02', '02', '02')
         ]
     )
+    await new Promise((r) => setTimeout(r, 150));
+    expect(api.getNumberOfCommandsWithoutRespond()).toEqual(2)
 
-    await new Promise((r) => setTimeout(r, 200));
+    api.onDataReceived(Buffer.from("<F0000010101010105>"))
+    await new Promise((r) => setTimeout(r, 1));
+    expect(api.getNumberOfCommandsWithoutRespond()).toEqual(1)
 
-
-    api.onDestroy();
+    api.onDataReceived(Buffer.from("<F000102020202020A>"))
+    await new Promise((r) => setTimeout(r, 1));
+    expect(api.getNumberOfCommandsWithoutRespond()).toEqual(0)
 
 })
 
-// when polling enabled
-// then polling works
 
-// czy działa polling 1second i 100ms
-// mock na udp? testowanie przyjmowania poleceń  zwrotnych trzeba zrobić
-
+// byteToTwoSignHex
