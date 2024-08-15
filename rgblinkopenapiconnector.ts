@@ -295,11 +295,11 @@ export class RGBLinkApiConnector {
 		}
 	}
 
-	// 	logFeedback(redeableMsg, info) {
-	// 		if (this.config && this.config.logEveryCommand) {
-	// 			this.myDebug('Feedback:' + redeableMsg + ' ' + info)
-	// 		}
-	// 	}
+	protected logFeedback(redeableMsg, info) {
+		if (this.config && this.config.logEveryCommand) {
+			this.myDebug('Feedback:' + redeableMsg + ' ' + info)
+		}
+	}
 
 	public onDestroy() {
 		if (this.socket !== undefined) {
@@ -350,13 +350,13 @@ export class RGBLinkApiConnector {
 		}
 	}
 
-	// 	setPolling(polling) {
-	// 		this.config.polling = polling
-	// 	}
+	public setPolling(polling) {
+		this.config.polling = polling
+	}
 
-	// 	setLogEveryCommand(logEveryCommand) {
-	// 		this.config.logEveryCommand = logEveryCommand
-	// 	}
+	public setLogEveryCommand(logEveryCommand) {
+		this.config.logEveryCommand = logEveryCommand
+	}
 
 	private sendCommand(CMD: ByteCode, DAT1: ByteCode, DAT2: ByteCode, DAT3: ByteCode, DAT4: ByteCode) {
 		const ADDR: ByteCode = '00'
