@@ -371,8 +371,8 @@ export class RGBLinkApiConnector {
 		this.sendCommandNative(cmd)
 	}
 
-	public byteToTwoSignHex(b): ByteCode {
-		let out = parseInt(b).toString(this.PARSE_INT_HEX_MODE).toUpperCase()
+	public byteToTwoSignHex(b: number): ByteCode {
+		let out = parseInt(b as unknown as string).toString(this.PARSE_INT_HEX_MODE).toUpperCase()
 		while (out.length < 2) {
 			out = '0' + out
 		}

@@ -42,5 +42,16 @@ test('RGBLinkApiConnector polling commands and join with answers ', async () => 
 
 })
 
+test('byteToTwoSignHex convert properly', async () => {
+    // given connectore setted up with enabled polling
+    api = new RGBLinkApiConnector(
+        new ApiConfig('localhost', TEST_PORT, false, false), []
+    )
+    expect(api.byteToTwoSignHex(0)).toEqual('00')
+    expect(api.byteToTwoSignHex(15)).toEqual('0F')
+    expect(api.byteToTwoSignHex(16)).toEqual('10')
+    expect(api.byteToTwoSignHex(255)).toEqual('FF')
+})
+
 
 // byteToTwoSignHex
