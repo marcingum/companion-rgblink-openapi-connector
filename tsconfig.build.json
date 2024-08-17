@@ -1,4 +1,21 @@
 {
-    "extends": "./tsconfig",
-    "exclude": ["**/*.test.*", "**/__mocks__/*", "**/__tests__/*"]
+  "extends": "./tsconfig",
+  "exclude": [
+    "node_modules/**",
+    "src/**/*spec.ts",
+    "src/**/__tests__/*",
+    "src/**/__mocks__/*",
+    "*.tgz"
+  ],
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "paths": {
+      "*": [
+        "./node_modules/*"
+      ]
+    },
+    "module": "Node16",
+    "moduleResolution": "Node16"
   }
+}

@@ -1,18 +1,22 @@
-import { UDPHelper } from "@companion-module/base";
+import { LogLevel, UDPHelper } from "@companion-module/base";
 
 const MAX_COMMANDS_WAITING_FOR_RESPONSES_FOR_POLLING: number = 5
 const COMMANDS_EXPIRE_TIME_SECONDS: number = 15
 
-export type ByteCode = '00' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '0A' | '0B' | '0C' | '0D' | '0E' | '0F' | '10' | '11' | '12' | '13' | '14' | '15' | '16' | '17' | '18' | '19' | '1A' | '1B' | '1C' | '1D' | '1E' | '1F' | '20' | '21' | '22' | '23' | '24' | '25' | '26' | '27' | '28' | '29' | '2A' | '2B' | '2C' | '2D' | '2E' | '2F' | '30' | '31' | '32' | '33' | '34' | '35' | '36' | '37' | '38' | '39' | '3A' | '3B' | '3C' | '3D' | '3E' | '3F' | '40' | '41' | '42' | '43' | '44' | '45' | '46' | '47' | '48' | '49' | '4A' | '4B' | '4C' | '4D' | '4E' | '4F' | '50' | '51' | '52' | '53' | '54' | '55' | '56' | '57' | '58' | '59' | '5A' | '5B' | '5C' | '5D' | '5E' | '5F' | '60' | '61' | '62' | '63' | '64' | '65' | '66' | '67' | '68' | '69' | '6A' | '6B' | '6C' | '6D' | '6E' | '6F' | '70' | '71' | '72' | '73' | '74' | '75' | '76' | '77' | '78' | '79' | '7A' | '7B' | '7C' | '7D' | '7E' | '7F' | '80' | '81' | '82' | '83' | '84' | '85' | '86' | '87' | '88' | '89' | '8A' | '8B' | '8C' | '8D' | '8E' | '8F' | '90' | '91' | '92' | '93' | '94' | '95' | '96' | '97' | '98' | '99' | '9A' | '9B' | '9C' | '9D' | '9E' | '9F' | 'A0' | 'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A6' | 'A7' | 'A8' | 'A9' | 'AA' | 'AB' | 'AC' | 'AD' | 'AE' | 'AF' | 'B0' | 'B1' | 'B2' | 'B3' | 'B4' | 'B5' | 'B6' | 'B7' | 'B8' | 'B9' | 'BA' | 'BB' | 'BC' | 'BD' | 'BE' | 'BF' | 'C0' | 'C1' | 'C2' | 'C3' | 'C4' | 'C5' | 'C6' | 'C7' | 'C8' | 'C9' | 'CA' | 'CB' | 'CC' | 'CD' | 'CE' | 'CF' | 'D0' | 'D1' | 'D2' | 'D3' | 'D4' | 'D5' | 'D6' | 'D7' | 'D8' | 'D9' | 'DA' | 'DB' | 'DC' | 'DD' | 'DE' | 'DF' | 'E0' | 'E1' | 'E2' | 'E3' | 'E4' | 'E5' | 'E6' | 'E7' | 'E8' | 'E9' | 'EA' | 'EB' | 'EC' | 'ED' | 'EE' | 'EF' | 'F0' | 'F1' | 'F2' | 'F3' | 'F4' | 'F5' | 'F6' | 'F7' | 'F8' | 'F9' | 'FA' | 'FB' | 'FC' | 'FD' | 'FE' | 'FF';
+export type Hex = '00' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '0A' | '0B' | '0C' | '0D' | '0E' | '0F' | '10' | '11' | '12' | '13' | '14' | '15' | '16' | '17' | '18' | '19' | '1A' | '1B' | '1C' | '1D' | '1E' | '1F' | '20' | '21' | '22' | '23' | '24' | '25' | '26' | '27' | '28' | '29' | '2A' | '2B' | '2C' | '2D' | '2E' | '2F' | '30' | '31' | '32' | '33' | '34' | '35' | '36' | '37' | '38' | '39' | '3A' | '3B' | '3C' | '3D' | '3E' | '3F' | '40' | '41' | '42' | '43' | '44' | '45' | '46' | '47' | '48' | '49' | '4A' | '4B' | '4C' | '4D' | '4E' | '4F' | '50' | '51' | '52' | '53' | '54' | '55' | '56' | '57' | '58' | '59' | '5A' | '5B' | '5C' | '5D' | '5E' | '5F' | '60' | '61' | '62' | '63' | '64' | '65' | '66' | '67' | '68' | '69' | '6A' | '6B' | '6C' | '6D' | '6E' | '6F' | '70' | '71' | '72' | '73' | '74' | '75' | '76' | '77' | '78' | '79' | '7A' | '7B' | '7C' | '7D' | '7E' | '7F' | '80' | '81' | '82' | '83' | '84' | '85' | '86' | '87' | '88' | '89' | '8A' | '8B' | '8C' | '8D' | '8E' | '8F' | '90' | '91' | '92' | '93' | '94' | '95' | '96' | '97' | '98' | '99' | '9A' | '9B' | '9C' | '9D' | '9E' | '9F' | 'A0' | 'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A6' | 'A7' | 'A8' | 'A9' | 'AA' | 'AB' | 'AC' | 'AD' | 'AE' | 'AF' | 'B0' | 'B1' | 'B2' | 'B3' | 'B4' | 'B5' | 'B6' | 'B7' | 'B8' | 'B9' | 'BA' | 'BB' | 'BC' | 'BD' | 'BE' | 'BF' | 'C0' | 'C1' | 'C2' | 'C3' | 'C4' | 'C5' | 'C6' | 'C7' | 'C8' | 'C9' | 'CA' | 'CB' | 'CC' | 'CD' | 'CE' | 'CF' | 'D0' | 'D1' | 'D2' | 'D3' | 'D4' | 'D5' | 'D6' | 'D7' | 'D8' | 'D9' | 'DA' | 'DB' | 'DC' | 'DD' | 'DE' | 'DF' | 'E0' | 'E1' | 'E2' | 'E3' | 'E4' | 'E5' | 'E6' | 'E7' | 'E8' | 'E9' | 'EA' | 'EB' | 'EC' | 'ED' | 'EE' | 'EF' | 'F0' | 'F1' | 'F2' | 'F3' | 'F4' | 'F5' | 'F6' | 'F7' | 'F8' | 'F9' | 'FA' | 'FB' | 'FC' | 'FD' | 'FE' | 'FF';
+
+export interface Logger {
+	log(level: LogLevel, message: string): void;
+}
 
 export class PollingCommand {
-	CMD: ByteCode
-	DAT1: ByteCode
-	DAT2: ByteCode
-	DAT3: ByteCode
-	DAT4: ByteCode
+	CMD: Hex
+	DAT1: Hex
+	DAT2: Hex
+	DAT3: Hex
+	DAT4: Hex
 
-	constructor(CMD: ByteCode, DAT1: ByteCode, DAT2: ByteCode, DAT3: ByteCode, DAT4: ByteCode) {
+	constructor(CMD: Hex, DAT1: Hex, DAT2: Hex, DAT3: Hex, DAT4: Hex) {
 		if (CMD.length != 2 || DAT1.length != 2 || DAT2.length != 2 || DAT3.length != 2 || DAT4.length != 2) {
 			console.log(`Bad command params: CMD:'${CMD}' DAT1:'${DAT1}' DAT2:'${DAT2}' DAT3:'${DAT3}' DAT4:'${DAT4}'`)
 		}
@@ -127,7 +131,7 @@ export class RGBLinkApiConnector {
 	private PARSE_INT_HEX_MODE: number = 16
 
 	private config: ApiConfig
-	private logProvider: undefined
+	private logProvider: Logger | undefined
 	private socket: UDPHelper | undefined
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	private eventsListeners: StringToListMap<any> = {};
@@ -154,7 +158,7 @@ export class RGBLinkApiConnector {
 		}, 100)
 	}
 
-	public enableLog(logProvider: undefined) {
+	public enableLog(logProvider: Logger) {
 		this.logProvider = logProvider
 	}
 
@@ -162,24 +166,18 @@ export class RGBLinkApiConnector {
 		this.logProvider = undefined
 	}
 
-	private myDebug(msg: string) {
+	protected myDebug(msg: string) {
 		this.internalMyLog('debug', msg)
 	}
 
-	private myWarn(msg: string) {
+	protected myWarn(msg: string) {
 		this.internalMyLog('warn', msg)
 	}
 
-	private internalMyLog(level: string, msg: string) {
+	private internalMyLog(level: LogLevel, msg: string) {
 		try {
-			if (typeof this.logProvider === 'object' && this.logProvider !== null && 'log' in this.logProvider) {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const method = (this.logProvider as any)['log']
-				if (typeof method === 'function') {
-					method.call(this.logProvider, level, msg);
-				} else {
-					console.log(msg);
-				}
+			if (this.logProvider) {
+				this.logProvider.log(level, msg)
 			} else {
 				console.log(msg)
 			}
@@ -252,6 +250,10 @@ export class RGBLinkApiConnector {
 	// 		this.doPolling(true)
 	// 	}
 
+	public onHostPortUpdate(host: string, port: number) {
+		this.createSocket(host, port)
+	}
+
 	private createSocket(host: string, port: number) {
 		this.myDebug('RGBLinkApiConnector: creating socket ' + host + ':' + port + '...')
 		this.config.host = host
@@ -295,9 +297,9 @@ export class RGBLinkApiConnector {
 		}
 	}
 
-	protected logFeedback(redeableMsg, info) {
+	protected logFeedback(redeableMsg: string, info: string): void {
 		if (this.config && this.config.logEveryCommand) {
-			this.myDebug('Feedback:' + redeableMsg + ' ' + info)
+			this.myDebug(`Feedback: ${redeableMsg} ${info}`)
 		}
 	}
 
@@ -308,14 +310,16 @@ export class RGBLinkApiConnector {
 		clearInterval(this.intervalHandler100ms)
 	}
 
-	private on(event: string, listener) {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	public on(event: string, listener: any) {
 		if (typeof this.eventsListeners[event] !== 'object') {
 			this.eventsListeners[event] = []
 		}
 		this.eventsListeners[event].push(listener)
 	}
 
-	private emit(event: string, args) {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	protected emit(event: string, args: any) {
 		if (typeof this.eventsListeners[event] === 'object') {
 			const listeners = this.eventsListeners[event].slice()
 
@@ -350,33 +354,33 @@ export class RGBLinkApiConnector {
 		}
 	}
 
-	public setPolling(polling) {
+	public setPolling(polling: boolean) {
 		this.config.polling = polling
 	}
 
-	public setLogEveryCommand(logEveryCommand) {
+	public setLogEveryCommand(logEveryCommand: boolean) {
 		this.config.logEveryCommand = logEveryCommand
 	}
 
-	private sendCommand(CMD: ByteCode, DAT1: ByteCode, DAT2: ByteCode, DAT3: ByteCode, DAT4: ByteCode) {
-		const ADDR: ByteCode = '00'
+	protected sendCommand(CMD: Hex, DAT1: Hex, DAT2: Hex, DAT3: Hex, DAT4: Hex) {
+		const ADDR: Hex = '00'
 		this.sendCommandWithAddr(ADDR, CMD, DAT1, DAT2, DAT3, DAT4)
 	}
 
-	private sendCommandWithAddr(ADDR: ByteCode, CMD: ByteCode, DAT1: ByteCode, DAT2: ByteCode, DAT3: ByteCode, DAT4: ByteCode) {
-		const SN: ByteCode = this.byteToTwoSignHex(this.nextSn)
+	private sendCommandWithAddr(ADDR: Hex, CMD: Hex, DAT1: Hex, DAT2: Hex, DAT3: Hex, DAT4: Hex) {
+		const SN: Hex = this.byteToTwoSignHex(this.nextSn)
 		this.incrementNextSn()
-		const checksum: ByteCode = this.calculateChecksum(ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4)
+		const checksum: Hex = this.calculateChecksum(ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4)
 		const cmd: string = '<T' + ADDR + SN + CMD + DAT1 + DAT2 + DAT3 + DAT4 + checksum + '>'
 		this.sendCommandNative(cmd)
 	}
 
-	public byteToTwoSignHex(b: number): ByteCode {
+	public byteToTwoSignHex(b: number): Hex {
 		let out = parseInt(b as unknown as string).toString(this.PARSE_INT_HEX_MODE).toUpperCase()
 		while (out.length < 2) {
 			out = '0' + out
 		}
-		return out as ByteCode
+		return out as Hex
 	}
 
 	private incrementNextSn() {
@@ -391,14 +395,14 @@ export class RGBLinkApiConnector {
 		this.sentCommandStorage.registerReceivedCommand(redeableMsg)
 
 		// Checksum checking
-		const checksumInMessage: ByteCode = redeableMsg.substr(16, 2) as ByteCode
-		const ADDR: ByteCode = redeableMsg.substr(2, 2) as ByteCode
-		const SN: ByteCode = redeableMsg.substr(4, 2) as ByteCode
-		const CMD: ByteCode = redeableMsg.substr(6, 2) as ByteCode
-		const DAT1: ByteCode = redeableMsg.substr(8, 2) as ByteCode
-		const DAT2: ByteCode = redeableMsg.substr(10, 2) as ByteCode
-		const DAT3: ByteCode = redeableMsg.substr(12, 2) as ByteCode
-		const DAT4: ByteCode = redeableMsg.substr(14, 2) as ByteCode
+		const checksumInMessage: Hex = redeableMsg.substr(16, 2) as Hex
+		const ADDR: Hex = redeableMsg.substr(2, 2) as Hex
+		const SN: Hex = redeableMsg.substr(4, 2) as Hex
+		const CMD: Hex = redeableMsg.substr(6, 2) as Hex
+		const DAT1: Hex = redeableMsg.substr(8, 2) as Hex
+		const DAT2: Hex = redeableMsg.substr(10, 2) as Hex
+		const DAT3: Hex = redeableMsg.substr(12, 2) as Hex
+		const DAT4: Hex = redeableMsg.substr(14, 2) as Hex
 		const calculatedChecksum = this.calculateChecksum(ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4)
 		if (checksumInMessage != calculatedChecksum) {
 			this.emit(RGBLinkApiConnector.EVENT_NAME_ON_CONNECTION_WARNING, 'Incorrect checksum ' + redeableMsg)
@@ -421,7 +425,7 @@ export class RGBLinkApiConnector {
 	}
 
 	//TODO make me private
-	public calculateChecksum(ADDR: ByteCode, SN: ByteCode, CMD: ByteCode, DAT1: ByteCode, DAT2: ByteCode, DAT3: ByteCode, DAT4: ByteCode): ByteCode {
+	public calculateChecksum(ADDR: Hex, SN: Hex, CMD: Hex, DAT1: Hex, DAT2: Hex, DAT3: Hex, DAT4: Hex): Hex {
 		let sum = 0
 		sum += parseInt(ADDR, this.PARSE_INT_HEX_MODE)
 		sum += parseInt(SN, this.PARSE_INT_HEX_MODE)
@@ -434,7 +438,7 @@ export class RGBLinkApiConnector {
 		while (checksum.length < 2) {
 			checksum = '0' + checksum
 		}
-		return checksum as ByteCode
+		return checksum as Hex
 	}
 
 	public getNumberOfCommandsWithoutRespond() {
