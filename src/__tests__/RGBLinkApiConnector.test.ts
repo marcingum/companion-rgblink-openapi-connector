@@ -1,4 +1,4 @@
-import { ApiConfig, PollingCommand, RGBLinkApiConnector } from "../src/rgblinkopenapiconnector";
+import { ApiConfig, PollingCommand, RGBLinkApiConnector } from "../rgblinkopenapiconnector";
 
 
 const TEST_PORT: number = 25000
