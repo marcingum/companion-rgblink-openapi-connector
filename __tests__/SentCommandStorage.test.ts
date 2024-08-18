@@ -1,4 +1,4 @@
-import { SentCommand, SentCommandStorage } from "../rgblinkopenapiconnector";
+import { SentCommand, SentCommandStorage } from "../src/rgblinkopenapiconnector";
 
 test('SentCommandStorage should help track sent command recognize responses for that commands', () => {
     const storage: SentCommandStorage = new SentCommandStorage()

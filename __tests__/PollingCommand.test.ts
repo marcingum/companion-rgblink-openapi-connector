@@ -1,4 +1,4 @@
-import { PollingCommand } from "../rgblinkopenapiconnector";
+import { PollingCommand } from "../src/rgblinkopenapiconnector";
 
 test('PollingCommand constructor works fine for proper params', () => {
     try {
