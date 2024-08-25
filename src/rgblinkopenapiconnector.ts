@@ -131,9 +131,10 @@ export class ApiMessage {
 	DAT2: Hex
 	DAT3: Hex
 	DAT4: Hex
-	extraData: Hex[]
+	extraData: string
+	dataBlock?: Hex[] | undefined
 
-	constructor(ADDR: Hex, SN: Hex, CMD: Hex, DAT1: Hex, DAT2: Hex, DAT3: Hex, DAT4: Hex, extraData: Hex[] = []) {
+	constructor(ADDR: Hex, SN: Hex, CMD: Hex, DAT1: Hex, DAT2: Hex, DAT3: Hex, DAT4: Hex, extraData: string, dataBlock: Hex[] | undefined = undefined) {
 		this.ADDR = ADDR
 		this.SN = SN
 		this.CMD = CMD
@@ -142,6 +143,67 @@ export class ApiMessage {
 		this.DAT3 = DAT3
 		this.DAT4 = DAT4
 		this.extraData = extraData
+		this.dataBlock = dataBlock
+	}
+}
+
+export class ChecksumCalculator {
+	private PARSE_INT_HEX_MODE: number = 16
+
+	public calculateChecksumForArray(data: Hex[]) {
+		let sum = 0
+		for (let i = 0; i < data.length; i++) {
+			sum += parseInt(data[i], this.PARSE_INT_HEX_MODE)
+		}
+		let checksum = (sum % 256).toString(this.PARSE_INT_HEX_MODE).toUpperCase()
+		while (checksum.length < 2) {
+			checksum = '0' + checksum
+		}
+		return checksum as Hex
+	}
+}
+
+export class DataBlockHelper {
+	private PARSE_INT_HEX_MODE = 16
+	private checksumCalc: ChecksumCalculator = new ChecksumCalculator()
+
+	public parseDataBlock(dataBlockStr: string): Hex[] | undefined {
+		const str: string = dataBlockStr.toUpperCase().replace(/ /g, '')
+		if (str.length % 2 == 1) {
+			return undefined
+		}
+		const ret: Hex[] = []
+		for (let i = 0; i < str.length; i += 2) {
+			ret.push(str.substring(i, i + 2) as Hex)
+		}
+		return ret
+	}
+
+	public isDataBlockValid(msg: ApiMessage): boolean {
+		// verify if exist
+		if (msg.dataBlock === undefined) {
+			console.warn('datablock undefined')
+			return false
+		}
+		
+		// verrify length by DAT3/DAT4
+		const declaredLength: number =
+			parseInt(msg.DAT3, this.PARSE_INT_HEX_MODE) + parseInt(msg.DAT4, this.PARSE_INT_HEX_MODE) * 256
+		if (declaredLength != msg.dataBlock.length) {
+			console.warn(`datablock length mismatch: declaredLength in DAT3/DAT4 ${declaredLength} != ${msg.dataBlock.length}`)
+			return false
+		}
+
+		// validate checksum
+		const dataWitoutDeclaredChecksum = [...msg.dataBlock]
+		const declaredChecksum = dataWitoutDeclaredChecksum.pop()
+		const calculatedChecksum: Hex = this.checksumCalc.calculateChecksumForArray(dataWitoutDeclaredChecksum)
+		if (declaredChecksum !== calculatedChecksum) {
+			console.warn(`datablock checksum mismatch: declared checksum is ${declaredChecksum} but calculated ${calculatedChecksum}`)
+			return false
+		}
+
+		return true
 	}
 }
 
@@ -157,7 +219,7 @@ export class RGBLinkApiConnector {
 	public static EVENT_NAME_ON_CONNECTION_WARNING = 'on_connection_warning'
 	public static EVENT_NAME_ON_CONNECTION_ERROR = 'on_connection_error'
 
-	private PARSE_INT_HEX_MODE: number = 16
+	protected PARSE_INT_HEX_MODE: number = 16
 
 	private config: ApiConfig
 	private logProvider: Logger | undefined
@@ -172,6 +234,9 @@ export class RGBLinkApiConnector {
 	private pollingCommands: PollingCommand[] = []
 
 	private feedbackConsumers: FeedbackRegistry = new FeedbackRegistry()
+	private checksumCalc: ChecksumCalculator = new ChecksumCalculator()
+	private featureDataBlock: boolean = false
+	private dataBlockHelper: DataBlockHelper = new DataBlockHelper()
 
 	constructor(config: ApiConfig, pollingCommands: PollingCommand[]) {
 		this.config = config
@@ -433,6 +498,7 @@ export class RGBLinkApiConnector {
 		const DAT2: Hex = redeableMsg.substr(10, 2) as Hex
 		const DAT3: Hex = redeableMsg.substr(12, 2) as Hex
 		const DAT4: Hex = redeableMsg.substr(14, 2) as Hex
+		const extraData: string = redeableMsg.substring(19)
 		const calculatedChecksum = this.calculateChecksum(ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4)
 		if (checksumInMessage != calculatedChecksum) {
 			console.log('Incorrect checksum')
@@ -450,13 +516,26 @@ export class RGBLinkApiConnector {
 			this.emit(RGBLinkApiConnector.EVENT_NAME_ON_CONNECTION_WARNING, 'Feedback with error:' + redeableMsg)
 			return
 		}
+
+		const msg: ApiMessage = new ApiMessage(ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4, extraData)
+
+		let dataBlock: Hex[] | undefined = undefined
+		if (this.featureDataBlock == true && (CMD == 'F0' || CMD == 'F1')) {
+			dataBlock = this.dataBlockHelper.parseDataBlock(extraData)
+			if (dataBlock == undefined) {
+				this.emit(RGBLinkApiConnector.EVENT_NAME_ON_CONNECTION_WARNING, 'Invalid datablock error:' + redeableMsg)
+				return
+			}
+			msg.dataBlock = dataBlock
+			if (this.dataBlockHelper.isDataBlockValid(msg) == false) {
+				this.emit(RGBLinkApiConnector.EVENT_NAME_ON_CONNECTION_WARNING, 'Datablock is not valid:' + redeableMsg)
+				return
+			}
+		}
 		// end of validate section
 
 
-
-		const consumingResult: FeedbackResult = this.feedbackConsumers.handleFeedback(
-			new ApiMessage(ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4, [])
-		)
+		const consumingResult: FeedbackResult = this.feedbackConsumers.handleFeedback(msg)
 		if (consumingResult !== undefined && consumingResult.consumed) {
 			if (consumingResult.isValid) {
 				this.emit(RGBLinkApiConnector.EVENT_NAME_ON_CONNECTION_OK, [])
@@ -470,25 +549,23 @@ export class RGBLinkApiConnector {
 		this.emit(RGBLinkApiConnector.EVENT_NAME_ON_DATA_API, [ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4])
 	}
 
-	//TODO make me private
 	public calculateChecksum(ADDR: Hex, SN: Hex, CMD: Hex, DAT1: Hex, DAT2: Hex, DAT3: Hex, DAT4: Hex): Hex {
-		let sum = 0
-		sum += parseInt(ADDR, this.PARSE_INT_HEX_MODE)
-		sum += parseInt(SN, this.PARSE_INT_HEX_MODE)
-		sum += parseInt(CMD, this.PARSE_INT_HEX_MODE)
-		sum += parseInt(DAT1, this.PARSE_INT_HEX_MODE)
-		sum += parseInt(DAT2, this.PARSE_INT_HEX_MODE)
-		sum += parseInt(DAT3, this.PARSE_INT_HEX_MODE)
-		sum += parseInt(DAT4, this.PARSE_INT_HEX_MODE)
-		let checksum = (sum % 256).toString(this.PARSE_INT_HEX_MODE).toUpperCase()
-		while (checksum.length < 2) {
-			checksum = '0' + checksum
-		}
-		return checksum as Hex
+		return this.checksumCalc.calculateChecksumForArray([ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4])
 	}
 
 	public getNumberOfCommandsWithoutRespond() {
 		return this.sentCommandStorage.getCountElementsWithoutRespond()
+	}
+
+	protected hexToNumber(num: Hex) {
+		return parseInt(num, this.PARSE_INT_HEX_MODE)
+	}
+
+	protected enableDataBlock() {
+		this.featureDataBlock = true
+	}
+	protected disableDataBlock() {
+		this.featureDataBlock = false
 	}
 }
 
