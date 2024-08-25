@@ -1,4 +1,5 @@
 import { LogLevel, UDPHelper } from "@companion-module/base";
+import { FeedbackConsumer, FeedbackCriteria, FeedbackRegistry, FeedbackResult } from "./feedback-register";
 
 const MAX_COMMANDS_WAITING_FOR_RESPONSES_FOR_POLLING: number = 5
 const COMMANDS_EXPIRE_TIME_SECONDS: number = 15
@@ -122,12 +123,40 @@ export class ApiConfig {
 
 type StringToListMap<T> = Record<string, T[]>;
 
+export class ApiMessage {
+	ADDR: Hex
+	SN: Hex
+	CMD: Hex
+	DAT1: Hex
+	DAT2: Hex
+	DAT3: Hex
+	DAT4: Hex
+	extraData: Hex[]
+
+	constructor(ADDR: Hex, SN: Hex, CMD: Hex, DAT1: Hex, DAT2: Hex, DAT3: Hex, DAT4: Hex, extraData: Hex[] = []) {
+		this.ADDR = ADDR
+		this.SN = SN
+		this.CMD = CMD
+		this.DAT1 = DAT1
+		this.DAT2 = DAT2
+		this.DAT3 = DAT3
+		this.DAT4 = DAT4
+		this.extraData = extraData
+	}
+}
+
 export class RGBLinkApiConnector {
+	/**
+	 * @deprecated you should use feedback consumers
+	 */
 	public static EVENT_NAME_ON_DATA_API = 'on_data'
-	public static EVENT_NAME_ON_DATA_API_NOT_STANDARD_LENGTH: string = 'on_data_not_standard_length'
+
+	public static EVENT_NAME_ON_DEVICE_STATE_CHANGED = 'on_device_state_changed'
+
 	public static EVENT_NAME_ON_CONNECTION_OK = 'on_connection_ok'
 	public static EVENT_NAME_ON_CONNECTION_WARNING = 'on_connection_warning'
 	public static EVENT_NAME_ON_CONNECTION_ERROR = 'on_connection_error'
+
 	private PARSE_INT_HEX_MODE: number = 16
 
 	private config: ApiConfig
@@ -142,6 +171,7 @@ export class RGBLinkApiConnector {
 	private pollingQueue: PollingCommand[] = []
 	private pollingCommands: PollingCommand[] = []
 
+	private feedbackConsumers: FeedbackRegistry = new FeedbackRegistry()
 
 	constructor(config: ApiConfig, pollingCommands: PollingCommand[]) {
 		this.config = config
@@ -156,6 +186,10 @@ export class RGBLinkApiConnector {
 		this.intervalHandler100ms = setInterval(function () {
 			self.onEvery100Miliseconds()
 		}, 100)
+	}
+
+	protected registerConsumer(criteria: FeedbackCriteria, consumer: FeedbackConsumer): void {
+		this.feedbackConsumers.registerConsumer(criteria, consumer)
 	}
 
 	public enableLog(logProvider: Logger) {
@@ -287,11 +321,7 @@ export class RGBLinkApiConnector {
 
 	public onDataReceived(message: Buffer) {
 		try {
-			if (message.length !== 19) {
-				this.emit(RGBLinkApiConnector.EVENT_NAME_ON_DATA_API_NOT_STANDARD_LENGTH, [message])
-			} else {
-				this.validateReceivedDataAndEmitIfValid(message)
-			}
+			this.validateReceivedDataAndEmitIfValid(message)
 		} catch (ex) {
 			console.log(ex)
 		}
@@ -405,6 +435,7 @@ export class RGBLinkApiConnector {
 		const DAT4: Hex = redeableMsg.substr(14, 2) as Hex
 		const calculatedChecksum = this.calculateChecksum(ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4)
 		if (checksumInMessage != calculatedChecksum) {
+			console.log('Incorrect checksum')
 			this.emit(RGBLinkApiConnector.EVENT_NAME_ON_CONNECTION_WARNING, 'Incorrect checksum ' + redeableMsg)
 			this.myDebug('redeableMsg Incorrect checksum: ' + checksumInMessage + ' != ' + calculatedChecksum)
 			return
@@ -420,6 +451,21 @@ export class RGBLinkApiConnector {
 			return
 		}
 		// end of validate section
+
+
+
+		const consumingResult: FeedbackResult = this.feedbackConsumers.handleFeedback(
+			new ApiMessage(ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4, [])
+		)
+		if (consumingResult !== undefined && consumingResult.consumed) {
+			if (consumingResult.isValid) {
+				this.emit(RGBLinkApiConnector.EVENT_NAME_ON_CONNECTION_OK, [])
+			}
+			this.logFeedback(redeableMsg, consumingResult.message)
+		} else {
+			this.myDebug('Unrecognized feedback message:' + redeableMsg)
+		}
+		this.emit(RGBLinkApiConnector.EVENT_NAME_ON_DEVICE_STATE_CHANGED, undefined)
 
 		this.emit(RGBLinkApiConnector.EVENT_NAME_ON_DATA_API, [ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4])
 	}
